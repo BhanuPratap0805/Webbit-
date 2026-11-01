@@ -20,20 +20,6 @@ https://github.com/user-attachments/assets/6e412408-12b9-40a7-80de-50123fc009c7
 
 ---
 
-## 🎬 Demo
-
-Explore Webbit in action through our project demonstration.
-
-<div align="center">
-
-### 🕸️ Watch Webbit in Action
-
-[![Watch Webbit Demo](https://img.shields.io/badge/▶_WATCH_THE_WEBBIT_DEMO-FF6B35?style=for-the-badge&logo=github&logoColor=white)](./media/webbit-demo.mp4)
-
-**[▶ Click here to watch the full screen recording](./media/webbit-demo.mp4)**
-
-</div>
-
 ## ✨ What is Webbit?
 
 Understanding an unfamiliar codebase can mean jumping between files, tracing imports manually, and trying to reconstruct how everything fits together.
