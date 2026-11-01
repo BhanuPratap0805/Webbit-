@@ -18,16 +18,17 @@
 
 ## 🎬 Demo
 
-Experience Webbit in action:
+Explore Webbit in action through our project demonstration.
 
-<video src="01.11.2026_12.04.23_REC.mp4" controls width="100%">
-  Your browser does not support embedded videos.
-  <a href="media/webbit-demo.mp4">Watch the Webbit demo</a>
-</video>
+<div align="center">
 
-[▶ Watch the Webbit Demo](media/webbit-demo.mp4)
+### 🕸️ Watch Webbit in Action
 
----
+[![Watch Webbit Demo](https://img.shields.io/badge/▶_WATCH_THE_WEBBIT_DEMO-FF6B35?style=for-the-badge&logo=github&logoColor=white)](./media/webbit-demo.mp4)
+
+**[▶ Click here to watch the full screen recording](./media/webbit-demo.mp4)**
+
+</div>
 
 ## ✨ What is Webbit?
 
