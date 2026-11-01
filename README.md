@@ -20,7 +20,7 @@
 
 Experience Webbit in action:
 
-<video src="media/webbit-demo.mp4" controls width="100%">
+<video src="01.11.2026_12.04.23_REC.mp4" controls width="100%">
   Your browser does not support embedded videos.
   <a href="media/webbit-demo.mp4">Watch the Webbit demo</a>
 </video>
