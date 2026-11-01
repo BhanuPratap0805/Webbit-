@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline' https://fonts.googleapis.com; font-src {{cspSource}} https://fonts.gstatic.com; script-src 'nonce-{{nonce}}' {{cspSource}} 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src {{cspSource}} data:;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webbit — Repository Architecture</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════
+       WEBBIT — OBSIDIAN SPIDER WEB DESIGN SYSTEM
+       Color philosophy: Dark foundation, vivid selective accents.
+       No blue. No purple. No gradients that scream "AI tool".
+       ═══════════════════════════════════════════════════════════════════ */
+    :root {
+      /* Foundation */
+      --obsidian:       #090B09;
+      --charcoal:       #121512;
+      --graphite:       #1C211D;
+      --graphite-light: #262D27;
+      --wire:           #2E362F;
+      --silk-white:     #F2F3E9;
+      --muted:          #7A8A7B;
+      --faint:          #3D4A3E;
+
+      /* Accent — vivid, used sparingly */
+      --chartreuse:     #D7FF38;
+      --venom:          #8CFF4D;
+      --lime:           #B8F529;
+      --orange:         #FF6B35;
+      --vermilion:      #FF3D2E;
+      --amber:          #FFCA55;
+
+      /* Semantic */
+      --node-default:   var(--chartreuse);
+      --node-selected:  var(--orange);
+      --node-dependent: var(--amber);
+      --node-error:     var(--vermilion);
+      --edge-default:   rgba(184, 245, 41, 0.4);
+      --edge-active:    var(--orange);
+
+      /* Typography */
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-ui:      'Space Grotesk', system-ui, sans-serif;
+      --font-mono:    'Space Mono', monospace;
+
+      /* Layout */
+      --header-h: 46px;
+      --panel-w:  320px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--obsidian);
+      color: var(--silk-white);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Spider web grid background — structural lines, not decoration ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        /* Concentric rings */
+        radial-gradient(circle at 62% 52%, transparent 60px, rgba(184,245,41,0.025) 60px, rgba(184,245,41,0.025) 61px, transparent 61px),
+        radial-gradient(circle at 62% 52%, transparent 120px, rgba(184,245,41,0.018) 120px, rgba(184,245,41,0.018) 121px, transparent 121px),
+        radial-gradient(circle at 62% 52%, transparent 200px, rgba(184,245,41,0.013) 200px, rgba(184,245,41,0.013) 201px, transparent 201px),
+        radial-gradient(circle at 62% 52%, transparent 300px, rgba(184,245,41,0.009) 300px, rgba(184,245,41,0.009) 301px, transparent 301px),
+        radial-gradient(circle at 62% 52%, transparent 420px, rgba(184,245,41,0.006) 420px, rgba(184,245,41,0.006) 421px, transparent 421px),
+        /* Radial spokes — 8 directions */
+        repeating-conic-gradient(from 0deg at 62% 52%,
+          transparent 0deg, transparent 22.4deg,
+          rgba(184,245,41,0.012) 22.4deg, rgba(184,245,41,0.012) 22.5deg);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── App Shell ─── */
+    .app {
+      position: relative;
+      display: grid;
+      grid-template-rows: var(--header-h) 1fr;
+      width: 100%; height: 100%;
+      z-index: 1;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       HEADER
+       ══════════════════════════════════════════════════════ */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0;
+      background: var(--charcoal);
+      border-bottom: 1px solid var(--wire);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Brand block */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      height: 100%;
+      border-right: 1px solid var(--wire);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Web geometry logo — SVG, purely structural */
+    .brand-logo svg {
+      width: 26px; height: 26px;
+      overflow: visible;
+    }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--silk-white);
+      line-height: 1;
+    }
+
+    .brand-tag {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 400;
+      color: var(--chartreuse);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* Nav tabs */
+    .nav {
+      display: flex;
+      align-items: stretch;
+      height: 100%;
+      padding: 0 8px;
+      gap: 2px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .nav-btn:hover { color: var(--silk-white); }
+
+    .nav-btn.active {
+      color: var(--chartreuse);
+      border-bottom-color: var(--chartreuse);
+    }
+
+    .nav-btn .nav-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    /* Search */
+    .search-wrap {
+      flex: 1;
+      max-width: 260px;
+      margin-left: auto;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-left: 1px solid var(--wire);
+    }
+
+    .search-icon { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+
+    .search-input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--silk-white);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      outline: none;
+    }
+
+    .search-input::placeholder { color: var(--faint); }
+
+    /* Header stats */
+    .header-stats {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      border-left: 1px solid var(--wire);
+      padding: 0 12px;
+      gap: 14px;
+    }
+
+    .hstat {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1px;
+    }
+
+    .hstat-num {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--chartreuse);
+      line-height: 1;
+    }
+
+    .hstat-label {
+      font-family: var(--font-ui);
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Scan button */
+    .btn-scan {
+      height: 100%;
+      padding: 0 16px;
+      background: var(--chartreuse);
+      border: none;
+      color: var(--obsidian);
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      border-left: 1px solid var(--wire);
+      transition: background 0.15s;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .btn-scan:hover { background: var(--lime); }
+
+    /* ══════════════════════════════════════════════════════
+       MAIN STAGE — content below header
+       ══════════════════════════════════════════════════════ */
+    .stage {
+      display: flex;
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       LEFT PANEL — File analysis + AI agents
+       ══════════════════════════════════════════════════════ */
+    .panel {
+      width: var(--panel-w);
+      min-width: 260px;
+      flex-shrink: 0;
+      background: var(--charcoal);
+      border-right: 1px solid var(--wire);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .panel::-webkit-scrollbar { width: 3px; }
+    .panel::-webkit-scrollbar-thumb { background: var(--wire); border-radius: 2px; }
+
+    /* Panel section header */
+    .sec-head {
+      padding: 10px 14px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--wire);
+    }
+
+    .sec-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .sec-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--chartreuse);
+      background: rgba(215,255,56,0.12);
+      padding: 1px 6px;
+      border: 1px solid rgba(215,255,56,0.25);
+    }
+
+    /* File selector block */
+    .file-block {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--wire);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .file-select {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--graphite);
+      border: 1px solid var(--wire);
+      color: var(--silk-white);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .file-select:focus { border-color: var(--chartreuse); }
+    .file-select option { background: var(--graphite); }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .btn { padding: 7px 10px; font-family: var(--font-ui); font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid var(--wire); background: var(--graphite); color: var(--silk-white); transition: all 0.15s; letter-spacing: 0.03em; }
+    .btn:hover { background: var(--graphite-light); border-color: var(--muted); }
+    .btn-primary { background: var(--orange); border-color: var(--orange); color: var(--obsidian); font-weight: 700; }
+    .btn-primary:hover { background: #ff7d4a; border-color: #ff7d4a; }
+
+    /* Structural signature block */
+    .struct-block {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--wire);
+    }
+
+    .struct-summary {
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .chip {
+      padding: 2px 7px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--chartreuse);
+      background: rgba(215,255,56,0.08);
+      border: 1px solid rgba(215,255,56,0.22);
+    }
+
+    /* AI agent pods */
+    .agents-block {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .agent-pod {
+      border-bottom: 1px solid var(--wire);
+    }
+
+    .agent-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: var(--graphite);
+      border-bottom: 1px solid var(--wire);
+      cursor: pointer;
+    }
+
+    .agent-head-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .agent-number {
+      width: 18px; height: 18px;
+      display: grid; place-items: center;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--obsidian);
+      flex-shrink: 0;
+    }
+
+    .agent-1 .agent-number { background: var(--chartreuse); }
+    .agent-2 .agent-number { background: var(--orange); }
+
+    .agent-1 .agent-head-label { color: var(--chartreuse); }
+    .agent-2 .agent-head-label { color: var(--orange); }
+
+    .cache-pill {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--venom);
+      background: rgba(140,255,77,0.1);
+      border: 1px solid rgba(140,255,77,0.25);
+      padding: 1px 5px;
+    }
+
+    .agent-body {
+      padding: 12px 14px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .agent-body::-webkit-scrollbar { width: 3px; }
+    .agent-body::-webkit-scrollbar-thumb { background: var(--wire); }
+
+    /* Markdown output */
+    .md-out {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      line-height: 1.65;
+      color: #B8C4B9;
+      white-space: normal;
+    }
+
+    .md-out .md-h1 {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--chartreuse);
+      margin: 8px 0 4px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(215,255,56,0.2);
+      display: block;
+    }
+
+    .md-out .md-h2 {
+      font-family: var(--font-ui);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--orange);
+      margin: 10px 0 3px;
+      display: block;
+    }
+
+    .md-out .md-h3 {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--amber);
+      margin: 6px 0 2px;
+      display: block;
+    }
+
+    .md-out strong { color: var(--silk-white); font-weight: 600; }
+    .md-out em { color: var(--amber); font-style: italic; }
+
+    .md-out .md-code {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--venom);
+      background: rgba(140,255,77,0.08);
+      border: 1px solid rgba(140,255,77,0.18);
+      padding: 0 4px;
+    }
+
+    .md-out .md-ul {
+      list-style: none;
+      margin: 4px 0;
+      padding: 0;
+    }
+
+    .md-out .md-ul li {
+      padding: 2px 0 2px 14px;
+      position: relative;
+      color: #A0ADA1;
+    }
+
+    .md-out .md-ul li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--chartreuse);
+      font-size: 9px;
+    }
+
+    .md-out .md-hr {
+      border: none;
+      border-top: 1px solid var(--wire);
+      margin: 8px 0;
+    }
+
+    .md-out .md-p { margin: 4px 0; }
+
+    .agent-error {
+      padding: 10px 14px;
+      background: rgba(255,61,46,0.08);
+      border-left: 3px solid var(--vermilion);
+      color: #FF8A80;
+      font-size: 10.5px;
+      line-height: 1.5;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       GRAPH STAGE — the web visualization
+       ══════════════════════════════════════════════════════ */
+    .graph-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: var(--obsidian);
+    }
+
+    #cy {
+      width: 100%; height: 100%;
+      display: block; outline: none;
+    }
+
+    /* Graph overlay controls */
+    .graph-controls {
+      position: absolute;
+      top: 14px; right: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 10;
+    }
+
+    .ctrl-btn {
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      background: var(--charcoal);
+      border: 1px solid var(--wire);
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: var(--font-mono);
+    }
+
+    .ctrl-btn:hover {
+      background: var(--graphite);
+      border-color: var(--chartreuse);
+      color: var(--chartreuse);
+    }
+
+    .ctrl-sep {
+      height: 1px;
+      background: var(--wire);
+      margin: 2px 4px;
+    }
+
+    /* Legend */
+    .legend {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      display: flex;
+      gap: 14px;
+      padding: 6px 12px;
+      background: var(--charcoal);
+      border: 1px solid var(--wire);
+      z-index: 10;
+    }
+
+    .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .leg-dot {
+      width: 7px; height: 7px;
+      flex-shrink: 0;
+    }
+
+    /* Loading overlay */
+    .loader-overlay {
+      position: absolute; inset: 0;
+      background: rgba(9,11,9,0.88);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 50;
+    }
+
+    /* Spider web SVG loader — concentric rings + spokes */
+    .web-spinner {
+      position: relative;
+      width: 56px; height: 56px;
+    }
+
+    .web-spinner svg {
+      width: 56px; height: 56px;
+      animation: webSpin 3s linear infinite;
+    }
+
+    @keyframes webSpin {
+      0%   { transform: rotate(0deg); opacity: 0.7; }
+      50%  { opacity: 1; }
+      100% { transform: rotate(360deg); opacity: 0.7; }
+    }
+
+    .loader-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--chartreuse);
+      animation: blink 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes blink {
+      from { opacity: 0.5; }
+      to   { opacity: 1; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       NODE DETAIL DRAWER (slide in from right)
+       ══════════════════════════════════════════════════════ */
+    .drawer {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 280px;
+      background: var(--charcoal);
+      border-left: 1px solid var(--wire);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      overflow-y: auto;
+      animation: slideIn 0.22s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .drawer::-webkit-scrollbar { width: 3px; }
+    .drawer::-webkit-scrollbar-thumb { background: var(--wire); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to   { transform: translateX(0); }
+    }
+
+    .drawer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--wire);
+      flex-shrink: 0;
+    }
+
+    .drawer-bar-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--chartreuse);
+    }
+
+    .drawer-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.12s;
+    }
+
+    .drawer-close:hover { color: var(--vermilion); }
+
+    .drawer-file-card {
+      padding: 16px 14px;
+      border-bottom: 1px solid var(--wire);
+    }
+
+    .drawer-file-ext {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--chartreuse);
+      margin-bottom: 4px;
+    }
+
+    .drawer-file-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--silk-white);
+      word-break: break-all;
+      margin-bottom: 3px;
+    }
+
+    .drawer-file-path {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .drawer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--wire);
+    }
+
+    .dep-section {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--wire);
+    }
+
+    .dep-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+
+    .dep-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .dep-count {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--chartreuse);
+      background: rgba(215,255,56,0.1);
+      border: 1px solid rgba(215,255,56,0.22);
+      padding: 1px 6px;
+    }
+
+    .dep-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .dep-list::-webkit-scrollbar { width: 3px; }
+    .dep-list::-webkit-scrollbar-thumb { background: var(--wire); }
+
+    .dep-item {
+      padding: 5px 8px;
+      background: var(--graphite);
+      border: 1px solid var(--wire);
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.12s;
+      word-break: break-all;
+    }
+
+    .dep-item:hover {
+      background: var(--graphite-light);
+      border-color: var(--chartreuse);
+      color: var(--chartreuse);
+    }
+
+    .dep-empty {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--faint);
+      font-style: italic;
+      padding: 4px 0;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+
+  <!-- Web geometry SVG filters -->
+  <svg width="0" height="0" style="position:absolute;pointer-events:none">
+    <defs>
+      <!-- Chartreuse glow filter for selected nodes -->
+      <filter id="glowGreen" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <!-- Orange glow for selection -->
+      <filter id="glowOrange" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+  </svg>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
+    <header class="header">
+      <!-- Brand -->
+      <div class="brand" id="homeLogo">
+        <div class="brand-logo">
+          <!-- Geometric spider web logo: 3 rings + 8 spokes, no cartoon spider -->
+          <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Spokes -->
+            <line x1="13" y1="13" x2="13" y2="1"   stroke="#D7FF38" stroke-width="0.8" opacity="0.9"/>
+            <line x1="13" y1="13" x2="22.5" y2="4.5" stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+            <line x1="13" y1="13" x2="25" y2="13"  stroke="#D7FF38" stroke-width="0.8" opacity="0.9"/>
+            <line x1="13" y1="13" x2="22.5" y2="21.5" stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+            <line x1="13" y1="13" x2="13" y2="25"  stroke="#D7FF38" stroke-width="0.8" opacity="0.9"/>
+            <line x1="13" y1="13" x2="3.5" y2="21.5"  stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+            <line x1="13" y1="13" x2="1"  y2="13"  stroke="#D7FF38" stroke-width="0.8" opacity="0.9"/>
+            <line x1="13" y1="13" x2="3.5" y2="4.5"   stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+            <!-- Concentric rings (approximate polygon) -->
+            <circle cx="13" cy="13" r="4"  stroke="#D7FF38" stroke-width="0.7" opacity="0.85" fill="none"/>
+            <circle cx="13" cy="13" r="7.5" stroke="#D7FF38" stroke-width="0.6" opacity="0.55" fill="none"/>
+            <circle cx="13" cy="13" r="11.5" stroke="#D7FF38" stroke-width="0.5" opacity="0.3" fill="none"/>
+            <!-- Center anchor -->
+            <circle cx="13" cy="13" r="2" fill="#D7FF38" opacity="0.95"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">WEBBIT</div>
+          <span class="brand-tag">Architecture Web</span>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="nav">
+        <button class="nav-btn active" id="tabGraph">
+          <span class="nav-dot"></span>WEB
+        </button>
+        <button class="nav-btn" id="tabAnalysis">
+          <span class="nav-dot"></span>AGENTS
+        </button>
+      </nav>
+
+      <!-- Search -->
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="search nodes…">
+      </div>
+
+      <!-- Stats -->
+      <div class="header-stats">
+        <div class="hstat">
+          <span class="hstat-num" id="countFiles">0</span>
+          <span class="hstat-label">Files</span>
+        </div>
+        <div class="hstat">
+          <span class="hstat-num" id="countThreads">0</span>
+          <span class="hstat-label">Links</span>
+        </div>
+      </div>
+
+      <!-- Scan -->
+      <button class="btn-scan" id="btnWeave">↻ SCAN</button>
+    </header>
+
+    <!-- ═══ STAGE ══════════════════════════════════════════════════════ -->
+    <div class="stage">
+
+      <!-- LEFT PANEL: Analysis + AI Agents -->
+      <aside class="panel" id="analysisPanel">
+
+        <!-- File Target -->
+        <div class="sec-head">
+          <span class="sec-title">Target File</span>
+        </div>
+        <div class="file-block">
+          <select id="fileDropdown" class="file-select">
+            <option value="">Scanning workspace…</option>
+          </select>
+          <div class="action-row">
+            <button id="btnQuickScan" class="btn">Structure</button>
+            <button id="btnDeepAnalyze" class="btn btn-primary">✦ Deep AI</button>
+          </div>
+        </div>
+
+        <!-- Structural Signature -->
+        <div class="sec-head">
+          <span class="sec-title">Structural Signature</span>
+        </div>
+        <div class="struct-block">
+          <p id="structureSummary" class="struct-summary">Select a file to view its structural profile and detected symbols.</p>
+          <div id="funcChips" class="chip-row"></div>
+        </div>
+
+        <!-- AI Agents -->
+        <div class="sec-head">
+          <span class="sec-title">Dual AI Agents</span>
+          <span id="cacheBadge" class="sec-badge hidden">⚡ CACHED</span>
+        </div>
+        <div id="aiAgentsContainer" class="agents-block hidden">
+
+          <!-- Agent 1 -->
+          <div class="agent-pod agent-1">
+            <div class="agent-head">
+              <div class="agent-head-label">
+                <span class="agent-number">1</span>
+                Role &amp; Architecture
+              </div>
+            </div>
+            <div class="agent-body">
+              <div id="agent1Output" class="md-out">Awaiting analysis…</div>
+            </div>
+          </div>
+
+          <!-- Agent 2 -->
+          <div class="agent-pod agent-2">
+            <div class="agent-head">
+              <div class="agent-head-label">
+                <span class="agent-number">2</span>
+                Function &amp; Class Detail
+              </div>
+            </div>
+            <div class="agent-body">
+              <div id="agent2Output" class="md-out">Awaiting analysis…</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Error -->
+        <div id="aiErrorBox" class="agent-error hidden"></div>
+      </aside>
+
+      <!-- GRAPH VISUALIZATION -->
+      <main class="graph-wrap">
+        <div id="cy"></div>
+
+        <!-- Zoom + Layout controls -->
+        <div class="graph-controls">
+          <button id="toolZoomIn"  class="ctrl-btn" title="Zoom In">+</button>
+          <button id="toolZoomOut" class="ctrl-btn" title="Zoom Out">−</button>
+          <div class="ctrl-sep"></div>
+          <button id="toolFit"    class="ctrl-btn" title="Fit to screen">⊡</button>
+          <button id="toolRadial" class="ctrl-btn" title="Radial web layout">◎</button>
+          <button id="toolForce"  class="ctrl-btn" title="Force layout">⊛</button>
+          <div class="ctrl-sep"></div>
+          <button id="toolReset"  class="ctrl-btn" title="Clear selection">✕</button>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+          <div class="leg-item">
+            <svg class="leg-dot" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="#D7FF38"/></svg>
+            Node
+          </div>
+          <div class="leg-item">
+            <svg class="leg-dot" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="#FF6B35"/></svg>
+            Selected
+          </div>
+          <div class="leg-item">
+            <svg class="leg-dot" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="#FFCA55"/></svg>
+            Dependent
+          </div>
+          <div class="leg-item">
+            <svg class="leg-dot" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="#FF3D2E"/></svg>
+            Error
+          </div>
+        </div>
+
+        <!-- Node detail drawer -->
+        <aside id="nodeDrawer" class="drawer hidden">
+          <div class="drawer-bar">
+            <span class="drawer-bar-title">Node Detail</span>
+            <button id="closeDrawerBtn" class="drawer-close">✕</button>
+          </div>
+
+          <div class="drawer-file-card">
+            <div id="drawerExt" class="drawer-file-ext">—</div>
+            <div id="drawerName" class="drawer-file-name">filename</div>
+            <div id="drawerPath" class="drawer-file-path">path/to/file</div>
+          </div>
+
+          <div class="drawer-actions">
+            <button id="drawerOpenEditor" class="btn">Open File</button>
+            <button id="drawerDeepAnalyze" class="btn btn-primary">⚡ Deep AI</button>
+          </div>
+
+          <div class="dep-section">
+            <div class="dep-head">
+              <span class="dep-label">Imports</span>
+              <span id="drawerImportsCount" class="dep-count">0</span>
+            </div>
+            <div id="drawerImportsList" class="dep-list"></div>
+          </div>
+
+          <div class="dep-section">
+            <div class="dep-head">
+              <span class="dep-label">Imported By</span>
+              <span id="drawerImportedByCount" class="dep-count">0</span>
+            </div>
+            <div id="drawerImportedByList" class="dep-list"></div>
+          </div>
+        </aside>
+
+        <!-- Scan loader -->
+        <div id="weaveLoader" class="loader-overlay hidden">
+          <div class="web-spinner">
+            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Spokes -->
+              <line x1="28" y1="28" x2="28" y2="2"  stroke="#D7FF38" stroke-width="0.8"/>
+              <line x1="28" y1="28" x2="48" y2="8"  stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+              <line x1="28" y1="28" x2="54" y2="28" stroke="#D7FF38" stroke-width="0.8"/>
+              <line x1="28" y1="28" x2="48" y2="48" stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+              <line x1="28" y1="28" x2="28" y2="54" stroke="#D7FF38" stroke-width="0.8"/>
+              <line x1="28" y1="28" x2="8"  y2="48" stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+              <line x1="28" y1="28" x2="2"  y2="28" stroke="#D7FF38" stroke-width="0.8"/>
+              <line x1="28" y1="28" x2="8"  y2="8"  stroke="#D7FF38" stroke-width="0.8" opacity="0.7"/>
+              <!-- Rings -->
+              <circle cx="28" cy="28" r="8"  stroke="#D7FF38" stroke-width="0.9" fill="none"/>
+              <circle cx="28" cy="28" r="15" stroke="#D7FF38" stroke-width="0.7" opacity="0.7" fill="none"/>
+              <circle cx="28" cy="28" r="22" stroke="#D7FF38" stroke-width="0.5" opacity="0.45" fill="none"/>
+              <!-- Animated highlight arc -->
+              <circle cx="28" cy="28" r="22" stroke="#FF6B35" stroke-width="1.5" opacity="0.8" fill="none"
+                stroke-dasharray="30 109" stroke-dashoffset="0">
+                <animateTransform attributeName="transform" type="rotate" from="0 28 28" to="360 28 28" dur="1.5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="28" cy="28" r="3" fill="#D7FF38"/>
+            </svg>
+          </div>
+          <span class="loader-label">Mapping repository…</span>
+        </div>
+      </main>
+
+    </div><!-- /stage -->
+  </div><!-- /app -->
+
+  <!-- Cytoscape.js (local, CDN fallback) -->
+  <script nonce="{{nonce}}" src="{{cytoscapeUri}}"></script>
+  <script nonce="{{nonce}}">
+    if (typeof cytoscape === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js';
+      document.head.appendChild(s);
+    }
+  </script>
+
+  <script nonce="{{nonce}}">
+    'use strict';
+
+    // ── VS Code bridge ────────────────────────────────────────────────
+    const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+    const $  = (id) => document.getElementById(id);
+
+    // ── State ─────────────────────────────────────────────────────────
+    let cy           = null;
+    let rawNodes     = [];
+    let rawEdges     = [];
+    let selectedId   = null;
+    let dashOffset   = 0;
+    let rafId        = null;
+
+    // ── File type helpers ─────────────────────────────────────────────
+
+    function extOf(p) {
+      const i = p.lastIndexOf('.');
+      return i === -1 ? '' : p.slice(i).toLowerCase();
+    }
+
+    function nodeColor(p) {
+      switch (extOf(p)) {
+        case '.ts': case '.tsx': return '#5BA7FF';   // TypeScript — cool blue accent
+        case '.js': case '.mjs': case '.cjs': return '#F0DB4F'; // JS yellow
+        case '.jsx': return '#61DAFB';                // React cyan
+        case '.py':  return '#4CAF50';                // Python green
+        case '.css': case '.scss': return '#E44D9B';  // Style pink
+        case '.json': return '#8CFF4D';               // JSON = venom
+        case '.html': return '#FF6B35';               // HTML = orange
+        default:    return '#D7FF38';                 // chartreuse default
+      }
+    }
+
+    function extLabel(p) {
+      const e = extOf(p);
+      return e ? e.slice(1).toUpperCase() : 'FILE';
+    }
+
+    function fileName(p) { return p.split('/').pop() || p; }
+
+    // ── Markdown renderer ─────────────────────────────────────────────
+    function renderMD(md) {
+      if (!md) return '';
+      const e = md
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+      return e
+        .replace(/^### (.+)$/gm, '<span class="md-h3">$1</span>')
+        .replace(/^## (.+)$/gm,  '<span class="md-h2">$1</span>')
+        .replace(/^# (.+)$/gm,   '<span class="md-h1">$1</span>')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g,    '<em>$1</em>')
+        .replace(/`([^`]+)`/g,    '<code class="md-code">$1</code>')
+        .replace(/^[-*•] (.+)$/gm,'<li>$1</li>')
+        .replace(/(<li>[\s\S]*?<\/li>)/g,'<ul class="md-ul">$1</ul>')
+        .replace(/^---+$/gm,      '<hr class="md-hr">')
+        .replace(/\n\n+/g,        '</p><p class="md-p">')
+        .replace(/\n(?!<)/g,      '<br>');
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CYTOSCAPE INIT
+    // ══════════════════════════════════════════════════════════════════
+    function initCy() {
+      if (cy || typeof cytoscape === 'undefined') return;
+
+      cy = cytoscape({
+        container: $('cy'),
+        boxSelectionEnabled: false,
+        autounselectify: false,
+        wheelSensitivity: 0.22,
+        minZoom: 0.08,
+        maxZoom: 5,
+
+        style: [
+          // ── Base node ──────────────────────────────────────────
+          {
+            selector: 'node',
+            style: {
+              'shape': 'ellipse',
+              'background-color': '#121512',
+              'background-opacity': 1,
+              'border-width': 1.5,
+              'border-color': 'data(color)',
+              'border-opacity': 0.85,
+              'width': 'data(size)',
+              'height': 'data(size)',
+              'label': 'data(shortLabel)',
+              'color': '#F2F3E9',
+              'font-size': '9px',
+              'font-family': 'Space Mono, monospace',
+              'font-weight': 400,
+              'text-valign': 'bottom',
+              'text-margin-y': 5,
+              'text-outline-color': '#090B09',
+              'text-outline-width': 2,
+              'shadow-blur': 8,
+              'shadow-color': 'data(color)',
+              'shadow-opacity': 0.6,
+              'transition-property': 'border-color,border-width,shadow-blur,shadow-color,width,height,opacity,background-color',
+              'transition-duration': '180ms'
+            }
+          },
+
+          // ── Hover ─────────────────────────────────────────────
+          {
+            selector: 'node:hover',
+            style: {
+              'border-width': 2.5,
+              'shadow-blur': 16,
+              'z-index': 999
+            }
+          },
+
+          // ── Selected ──────────────────────────────────────────
+          {
+            selector: 'node.selected',
+            style: {
+              'border-color': '#FF6B35',
+              'border-width': 3,
+              'background-color': '#1A0C06',
+              'shadow-color': '#FF6B35',
+              'shadow-blur': 22,
+              'shadow-opacity': 0.9,
+              'z-index': 1000
+            }
+          },
+
+          // ── Direct dependency ─────────────────────────────────
+          {
+            selector: 'node.direct-dep',
+            style: {
+              'border-color': '#FFCA55',
+              'border-width': 2,
+              'shadow-color': '#FFCA55',
+              'shadow-blur': 14,
+              'z-index': 990
+            }
+          },
+
+          // ── Indirect ─────────────────────────────────────────
+          {
+            selector: 'node.indirect-dep',
+            style: {
+              'border-color': '#B8F529',
+              'border-width': 1.5,
+              'shadow-color': '#B8F529',
+              'shadow-blur': 8,
+              'z-index': 980
+            }
+          },
+
+          // ── Dimmed ───────────────────────────────────────────
+          {
+            selector: 'node.dimmed',
+            style: {
+              'opacity': 0.15,
+              'shadow-opacity': 0
+            }
+          },
+
+          // ── Base edge — silk thread ───────────────────────────
+          {
+            selector: 'edge',
+            style: {
+              'width': 1,
+              'curve-style': 'bezier',
+              'line-color': '#2E362F',
+              'line-style': 'solid',
+              'opacity': 0.7,
+              'target-arrow-shape': 'triangle',
+              'target-arrow-color': '#3D4A3E',
+              'arrow-scale': 0.6,
+              'transition-property': 'line-color,target-arrow-color,width,opacity',
+              'transition-duration': '150ms'
+            }
+          },
+
+          // ── Active edge (direct) ───────────────────────────────
+          {
+            selector: 'edge.active-direct',
+            style: {
+              'line-color': '#FF6B35',
+              'target-arrow-color': '#FF6B35',
+              'width': 2,
+              'opacity': 1,
+              'z-index': 995
+            }
+          },
+
+          // ── Active edge (indirect) ────────────────────────────
+          {
+            selector: 'edge.active-indirect',
+            style: {
+              'line-color': '#FFCA55',
+              'target-arrow-color': '#FFCA55',
+              'width': 1.5,
+              'opacity': 0.8,
+              'z-index': 985
+            }
+          },
+
+          // ── Dimmed edge ───────────────────────────────────────
+          {
+            selector: 'edge.dimmed',
+            style: { 'opacity': 0.04 }
+          }
+        ]
+      });
+
+      // Events
+      cy.on('tap', 'node', evt => selectNode(evt.target.id()));
+      cy.on('tap', evt => { if (evt.target === cy) clearSelection(); });
+
+      // Subtle silk flow animation (slow, not distracting)
+      startSilkFlow();
+    }
+
+    // ── Subtle animated dash offset on active edges ────────────────
+    function startSilkFlow() {
+      if (rafId) cancelAnimationFrame(rafId);
+      function tick() {
+        dashOffset = (dashOffset + 0.3) % 24;
+        if (cy) {
+          cy.edges('.active-direct,.active-indirect').style({
+            'line-style': 'dashed',
+            'line-dash-pattern': [5, 4],
+            'line-dash-offset': -dashOffset
+          });
+        }
+        rafId = requestAnimationFrame(tick);
+      }
+      rafId = requestAnimationFrame(tick);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // LAYOUTS
+    // ══════════════════════════════════════════════════════════════════
+    function layoutRadial() {
+      if (!cy || !rawNodes.length) return;
+      cy.layout({
+        name: 'concentric',
+        concentric: n => n.degree(),
+        levelWidth: () => 1,
+        padding: 60,
+        animate: true,
+        animationDuration: 600,
+        spacingFactor: 1.4
+      }).run();
+    }
+
+    function layoutForce() {
+      if (!cy || !rawNodes.length) return;
+      cy.layout({
+        name: 'cose',
+        animate: true,
+        animationDuration: 700,
+        padding: 50,
+        nodeRepulsion: () => 600000,
+        idealEdgeLength: () => 110,
+        edgeElasticity: () => 80,
+        gravity: 0.25
+      }).run();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // SELECTION
+    // ══════════════════════════════════════════════════════════════════
+    function clearSelection() {
+      selectedId = null;
+      if (!cy) return;
+      cy.elements().removeClass('selected direct-dep indirect-dep dimmed active-direct active-indirect');
+      // Restore all edges to solid default
+      cy.edges().style({ 'line-style': 'solid', 'line-dash-pattern': [], 'line-dash-offset': 0 });
+      $('nodeDrawer').classList.add('hidden');
+    }
+
+    function selectNode(nodeId) {
+      if (!cy) return;
+      clearSelection();
+      selectedId = nodeId;
+
+      const tgt      = cy.getElementById(nodeId);
+      if (!tgt || !tgt.length) return;
+
+      const dOut     = tgt.outgoers('node');
+      const dIn      = tgt.incomers('node');
+      const dNodes   = dOut.union(dIn);
+      const dEdges   = tgt.connectedEdges();
+
+      const iOut     = dOut.outgoers('node').difference(tgt).difference(dNodes);
+      const iIn      = dIn.incomers('node').difference(tgt).difference(dNodes);
+      const iNodes   = iOut.union(iIn);
+      const iEdges   = dNodes.connectedEdges().difference(dEdges);
+
+      cy.elements().addClass('dimmed');
+      tgt.removeClass('dimmed').addClass('selected');
+      dNodes.removeClass('dimmed').addClass('direct-dep');
+      dEdges.removeClass('dimmed').addClass('active-direct');
+      iNodes.removeClass('dimmed').addClass('indirect-dep');
+      iEdges.removeClass('dimmed').addClass('active-indirect');
+
+      populateDrawer(nodeId, dOut.map(n => n.id()), dIn.map(n => n.id()));
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // DRAWER
+    // ══════════════════════════════════════════════════════════════════
+    function populateDrawer(nodeId, outgoing, incoming) {
+      $('drawerExt').textContent  = extLabel(nodeId);
+      $('drawerName').textContent = fileName(nodeId);
+      $('drawerPath').textContent = nodeId;
+      $('drawerImportsCount').textContent    = outgoing.length;
+      $('drawerImportedByCount').textContent = incoming.length;
+
+      const mkItem = (id) => `<div class="dep-item" data-jump="${id}">${id}</div>`;
+      const empty  = () => `<div class="dep-empty">None</div>`;
+
+      $('drawerImportsList').innerHTML    = outgoing.length ? outgoing.map(mkItem).join('') : empty();
+      $('drawerImportedByList').innerHTML = incoming.length ? incoming.map(mkItem).join('') : empty();
+
+      document.querySelectorAll('[data-jump]').forEach(el => {
+        el.onclick = () => {
+          selectNode(el.dataset.jump);
+          cy.animate({ center: { eles: cy.getElementById(el.dataset.jump) }, zoom: 1.5, duration: 350 });
+        };
+      });
+
+      $('drawerOpenEditor').onclick = () => {
+        if (vscode) vscode.postMessage({ type: 'open', id: nodeId });
+      };
+
+      $('drawerDeepAnalyze').onclick = () => {
+        $('fileDropdown').value = nodeId;
+        if (vscode) {
+          showLoader(true);
+          vscode.postMessage({ type: 'deep', id: nodeId });
+        }
+      };
+
+      $('nodeDrawer').classList.remove('hidden');
+    }
+
+    $('closeDrawerBtn').onclick = () => clearSelection();
+
+    // ══════════════════════════════════════════════════════════════════
+    // GRAPH RENDER
+    // ══════════════════════════════════════════════════════════════════
+    function renderGraph(nodesData, edgesData) {
+      rawNodes = nodesData || [];
+      rawEdges = edgesData || [];
+
+      $('countFiles').textContent   = rawNodes.length;
+      $('countThreads').textContent = rawEdges.length;
+
+      // Populate dropdown
+      const sel = $('fileDropdown');
+      sel.innerHTML = '';
+      rawNodes.forEach(n => {
+        const o = document.createElement('option');
+        o.value = n.id;
+        o.textContent = n.id;
+        sel.appendChild(o);
+      });
+
+      initCy();
+      if (!cy) return;
+
+      // Degree map for node sizing
+      const degMap = {};
+      rawEdges.forEach(e => {
+        degMap[e.source] = (degMap[e.source] || 0) + 1;
+        degMap[e.target] = (degMap[e.target] || 0) + 1;
+      });
+
+      const elements = [];
+
+      rawNodes.forEach(n => {
+        const deg = degMap[n.id] || 0;
+        const size = Math.min(48, Math.max(22, 22 + deg * 2.5));
+        elements.push({
+          group: 'nodes',
+          data: {
+            id: n.id,
+            label: n.id,
+            shortLabel: fileName(n.id),
+            color: nodeColor(n.id),
+            size
+          }
+        });
+      });
+
+      rawEdges.forEach((e, i) => {
+        elements.push({
+          group: 'edges',
+          data: { id: 'e' + i, source: e.source, target: e.target }
+        });
+      });
+
+      cy.elements().remove();
+      cy.add(elements);
+      layoutRadial();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CONTROLS
+    // ══════════════════════════════════════════════════════════════════
+    $('toolZoomIn').onclick  = () => cy && cy.zoom(cy.zoom() * 1.25);
+    $('toolZoomOut').onclick = () => cy && cy.zoom(cy.zoom() / 1.25);
+    $('toolFit').onclick     = () => cy && cy.fit(undefined, 60);
+    $('toolRadial').onclick  = layoutRadial;
+    $('toolForce').onclick   = layoutForce;
+    $('toolReset').onclick   = () => { clearSelection(); cy && cy.fit(undefined, 60); };
+
+    $('searchInput').oninput = (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      if (!cy) return;
+      if (!q) { clearSelection(); return; }
+      const match = rawNodes.find(n => n.id.toLowerCase().includes(q));
+      if (match) {
+        selectNode(match.id);
+        cy.animate({ center: { eles: cy.getElementById(match.id) }, zoom: 1.6, duration: 320 });
+      }
+    };
+
+    // ── Navigation tabs ───────────────────────────────────────────────
+    $('tabGraph').onclick = () => {
+      $('tabGraph').classList.add('active');
+      $('tabAnalysis').classList.remove('active');
+      $('analysisPanel').style.display = 'none';
+      cy && cy.resize();
+    };
+
+    $('tabAnalysis').onclick = () => {
+      $('tabAnalysis').classList.add('active');
+      $('tabGraph').classList.remove('active');
+      $('analysisPanel').style.display = 'flex';
+      cy && cy.resize();
+    };
+
+    // ── Scan / Analyze buttons ────────────────────────────────────────
+    $('btnWeave').onclick = () => {
+      showLoader(true);
+      if (vscode) vscode.postMessage({ type: 'scan' });
+    };
+
+    $('btnQuickScan').onclick = () => {
+      const id = $('fileDropdown').value;
+      if (id && vscode) vscode.postMessage({ type: 'analyze', id });
+    };
+
+    $('btnDeepAnalyze').onclick = () => {
+      const id = $('fileDropdown').value;
+      if (id && vscode) {
+        showLoader(true);
+        vscode.postMessage({ type: 'deep', id });
+      }
+    };
+
+    function showLoader(show) {
+      $('weaveLoader').classList.toggle('hidden', !show);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // VS CODE MESSAGE HANDLER
+    // ══════════════════════════════════════════════════════════════════
+    window.addEventListener('message', (ev) => {
+      const msg = ev.data;
+      showLoader(false);
+
+      if (msg.type === 'graph') {
+        renderGraph(msg.nodes, msg.edges);
+      }
+
+      if (msg.type === 'analysis') {
+        $('structureSummary').textContent = msg.summary || '—';
+
+        const chips = $('funcChips');
+        chips.innerHTML = (msg.functions && msg.functions.length)
+          ? msg.functions.map(fn => `<span class="chip">${fn}</span>`).join('')
+          : '<span style="color:var(--faint);font-size:9px;font-family:var(--font-mono)">No symbols detected</span>';
+
+        if (msg.deep) {
+          $('aiAgentsContainer').classList.remove('hidden');
+          $('aiErrorBox').classList.add('hidden');
+
+          if (msg.aiError) {
+            $('aiErrorBox').textContent = msg.aiError;
+            $('aiErrorBox').classList.remove('hidden');
+          } else {
+            $('agent1Output').innerHTML = renderMD(msg.aiFileLevel || 'Pending…');
+            $('agent2Output').innerHTML = renderMD(msg.aiFuncLevel || 'Pending…');
+            $('cacheBadge').classList.toggle('hidden', !msg.fromCache);
+          }
+        }
+      }
+    });
+
+    // Auto-scan on load
+    if (vscode) vscode.postMessage({ type: 'scan' });
+  </script>
+</body>
+</html>
